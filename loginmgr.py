@@ -267,7 +267,12 @@ class Logins():
         if not edit:
             login['ctime'] = time.time()
         if edit:
+            # Some info so that we can retreive last editions
             login['mtime'] = time.time()
+            if 'old_revisions' in login:
+                login['old_revisions'].append(self.revision) 
+            else:
+                login['old_revisions'] = [self.revision]
         for k, v in config.items():
             if k == 'name':
                 next
