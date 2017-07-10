@@ -225,7 +225,7 @@ def fullbackup(pathtodir):
 def quit(filesys, logins):
     logger.debug('Quitting with logins: {0}, filesys: {1}'.format(logins, filesys))
     encryptedbytes = encrypt(logins.save())
-    filesys.feedandsave(encryptedbytes, logins.revision)
+    filesys.feedandsave(encryptedbytes, logins)
 
 class Login():
     def __init__(self):
@@ -374,20 +374,25 @@ class FileSysHandler():
         except Exception as exc:
             logger.warning('Failed to remove file {0}', self.encryptedpath)
 
-    def feedandsave(self, byteobj, revision):
+    def feedandsave(self, byteobj, logins):
         '''takes in the content (likely encrypted bytes) and saves it as the
         newest save that means that it has to be different than what was opened
         first.
         >>> feedandsave(self, b'abc123')
         '''
         try:
-            self.savepath = os.path.realpath(time.strftime(self.saveformat))
-            self.revisionpath = os.path.realpath('revision-' + str(revision))
+            self.revisionpath = os.path.realpath('revision-' + str(logins.newrevision))
+            if logins.newrevision == logins.revision:
+                self.savepath = self.filepath
+            else:
+                self.savepath = os.path.realpath(time.strftime(self.saveformat))
             with open(self.savepath, 'wb') as encfile:
                 encfile.write(byteobj)
             if os.path.islink(self.encryptedpath):
                 os.unlink(self.encryptedpath)
             os.symlink(self.savepath, self.encryptedpath)
+            if os.path.islink(self.revisionpath):
+                os.unlink(self.revisionpath)
             os.symlink(self.savepath, self.revisionpath)
         except:
             logger.warning('Could not save file')
@@ -401,15 +406,16 @@ class FileSysHandler():
         ''' Sanity check that we have a path and main file to work with. No filepath == latest'''
         if self.initializing:
             return BytesIO()
-        if not filepath:
+        self.filepath = filepath
+        if not self.filepath: # todo here make it possible to open backups
             if os.path.islink(self.encryptedpath):
-                filepath = os.readlink(self.encryptedpath)
+                self.filepath = os.readlink(self.encryptedpath)
             else:
                 logger.warning('No available file to open!')
                 return False
         if os.path.islink(self.encryptedpath):
             logger.info('opening %s', filepath)
-            with open(filepath, 'rb') as fh:
+            with open(self.filepath, 'rb') as fh:
                 byteobj = fh.read()
                 logger.debug('Returning read file "%s"', type(byteobj))
                 return byteobj
@@ -493,9 +499,27 @@ class MainInterpreter(cmd.Cmd):
         for name, entry in self.logins.logins.items():
             Logins.loginprinter(entry)
 
+    # ls
+    def complete_ls(self, text, line, begidx, endidx):
+        if not text:
+            completions = self.logins.logins.keys()
+        else:
+            completions = [f for f in self.logins.logins.keys() if f.startswith(text.strip())]
+        return completions
+
+    def do_ls(self, args):
+        if args:
+            if args in self.logins.logins:
+                Logins.loginprinter(self.logins.logins[args])
+        else:
+            for name in self.logins.logins.keys():
+                print(name)
+    # end ls
+
     def do_EOF(self, args):
         self.do_quit(args)
 
+    # edit
     def do_edit(self, args):
         #print('edit Login entry')
         if args:
@@ -508,10 +532,11 @@ class MainInterpreter(cmd.Cmd):
 
     def complete_edit(self, text, line, begidx, endidx):
         if not text:
-            completions = entrymockup
+            completions = self.logins.logins.keys()
         else:
-            completions = [f for f in entrymockup if f.startswith(text.strip())]
+            completions = [f for f in self.logins.logins.keys() if f.startswith(text.strip())]
         return completions
+    # end edit
 
     def do_add(self, args):
         if not args:
@@ -538,8 +563,10 @@ class AddInterpreter(cmd.Cmd):
             Logins.loginprinter(self.logins.logins[self.entry])
             self.newlogin = logins.logins[self.entry]
             logger.info('\nEdit fields (empty to keep old value)')
-            self.newlogin['login'] = input('Login for {0} old:"{1}" :'.format(entry, self.newlogin['login']))
-            self.newlogin['password'] = input('Password for {0} old:"{1}":'.format(entry, self.newlogin['password']))
+            self.editedlogin = input('Login for {0} old:"{1}" :'.format(entry, self.newlogin.get('login', '')))
+            self.newlogin['login'] = self.editedlogin or self.newlogin.get('login', '')
+            self.editedpassword = input('Password for {0} old:"{1}":'.format(entry, self.newlogin.get('password', '')))
+            self.newlogin['password'] = self.editedpassword or self.newlogin.get('password', '')
         else:
             self.newlogin = {'name': entry}
             self.newlogin['login'] = input('Login for {0}:'.format(entry))
