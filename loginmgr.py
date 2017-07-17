@@ -56,7 +56,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 DEBUG = True
-WORK_PATH = '/home/carl/Code/loginmgr/TEST'
+WORK_PATH = '/home/carl/Code/loginmgr/TEST/'
 FNAME = 'testfile.crypt'
 BKUPNR = 10 # nr of backups to keep
 SPECIAL_CHARS = '_!?.&+-'
@@ -246,12 +246,14 @@ class Login():
 
 class Logins():
 
-    def setupdated(self, edit, login):
+    def setupdated(self, edit, remove, login):
         self.changed = True
         if self.revision == self.newrevision:
             self.newrevision = self.revision + 1
         if edit:
             self.edited.append(login)
+        elif self.remove:
+            self.removed.append(login)
         else:
             self.added.append(login)
 
@@ -289,17 +291,22 @@ class Logins():
             logger.warning('No password set for %s', config['name'])
 
         self.logins[config['name']] = login
-        self.setupdated(edit, login)
+        self.setupdated(edit, remove=False, login=login)
 
     def edit(self, config={}):
         self.add(config={}, edit=True)
 
     def remove(self, name):
         try:
-            logins.pop(name)
+            removed = dict(((name, self.logins.pop(name)), ))
         except KeyError:
             logger.warning('%s is not a configured login', name)
-        self.setupdated()
+            return False
+        self.setupdated(edit=False, remove=True, login=removed)
+        logger.warning('Logins can be restored from older revisions\
+                (i.e history files use "search" command to find entries)', name)
+        logger.warning('Removed login %s', name)
+        return True
 
     def loginprinter(login):
         print(login)
@@ -357,6 +364,12 @@ class Logins():
 class FileSysHandler():
     saveformat = '%Y-%m-%d-%H%M%S.enc'
     def clean_backups(self):
+        try:
+            os.remove(self.filepath + '.bkup')
+        except FileNotFoundError:
+            pass
+        except Exception:
+            logger.warning('Unable to remove backup file %s', self.filepath + '.bkup')
         self.oldbackups = glob('*.enc')
         self.oldbackups = sorted(self.oldbackups, key=lambda x: time.strptime(x,\
                 self.saveformat), reverse=True)
@@ -401,7 +414,6 @@ class FileSysHandler():
             logger.warning('\nCould not save file!! Trying to revert.\n') # TODO fix better revert
             shutil.move(self.filepath + '.bkup', self.filepath)
             raise
-        os.remove(self.filepath + '.bkup')
         self.clean_backups()
 
     def pick_backup_file(self):
@@ -545,6 +557,24 @@ class MainInterpreter(cmd.Cmd):
             completions = [f for f in self.logins.logins.keys() if f.startswith(text.strip())]
         return completions
     # end edit
+
+    # rm
+    def do_rm(self, args):
+        yesno = ''
+        if args:
+            while yesno not in ('y','n'):
+                yesno = input('Remove entry %s y/n? ' % args)[0].lower()
+            if 'y' in yesno:
+                self.logins.remove(args)
+        return
+
+    def complete_rm(self, text, line, begidx, endidx):
+        if not text:
+            completions = self.logins.logins.keys()
+        else:
+            completions = [f for f in self.logins.logins.keys() if f.startswith(text.strip())]
+        return completions
+    # end rm
 
     def addoredit(self, entry, edit=False):
         self.edit = edit
