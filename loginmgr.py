@@ -304,7 +304,7 @@ class Logins():
             return False
         self.setupdated(edit=False, remove=True, login=removed)
         logger.warning('Logins can be restored from older revisions\
-                (i.e history files use "search" command to find entries)', name)
+                (i.e history files use "search-history" command to find entries)', name)
         logger.warning('Removed login %s', name)
         return True
 
@@ -576,6 +576,14 @@ class MainInterpreter(cmd.Cmd):
         return completions
     # end rm
 
+    # search
+    def do_search(self, args):
+        for entry in self.logins.logins.keys():
+            if args in entry:
+                print(entry.replace(args, COLORS['red'] + args + '\033[1;m'))
+        return
+
+    # add
     def addoredit(self, entry, edit=False):
         self.edit = edit
         self.entry = entry
@@ -620,6 +628,7 @@ class MainInterpreter(cmd.Cmd):
 
     def help_add(self):
         print('"add" Bring you to the login entry add prompt')
+    # end add
 
 
 class AddInterpreter(cmd.Cmd):
