@@ -472,6 +472,13 @@ class FileSysHandler():
                 logger.warning('Failed to link file {0} with {1}: {2}', self.bkpname,\
                         self.encryptedpath, self.encryptedpathexc)
 
+    @property
+    def revision_files(self):
+        revisions = {}
+        revfilelinks = glob(WORK_PATH + os.path.sep + 'revision-' + '*')
+        for revfile in revfilelinks:
+            revisions[revfile] = os.readlink(revfile)
+        return revisions
 
     def __init__(self, path):
         self.initializing = False
@@ -702,6 +709,7 @@ def main():
         logins = Logins(decrypted)
     else:
         logins = Logins(None, initializing=True)
+
     commander(filesys, logins)
     atexit.register(quit, filesys, logins)
     #signal.signal(1, quit(filesys, logins))
