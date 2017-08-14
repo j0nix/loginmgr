@@ -61,6 +61,7 @@ FNAME = 'testfile.crypt'
 BKUPNR = 10 # nr of backups to keep
 SPECIAL_CHARS = '_!?.&+-'
 STARTDIR = os.getcwd()
+PWLEN = 20
 saltlength = 16
 LOGFORMAT = '%(asctime)s %(levelname)s: %(message)s'
 LOGFORMATDEBUG = '%(asctime)s %(levelname)s: line:%(lineno)d  func:%(funcName)s;  %(message)s'
@@ -568,11 +569,10 @@ class MainInterpreter(cmd.Cmd):
 
     # edit
     def do_edit(self, args):
-        #print('edit Login entry')
-        if args:
-            commander = AddInterpreter(self.logins, self.filesys, args, edit=True)
-            commander.prompt = "edit(%s)" % args
-            commander.cmdloop()
+        commander.prompt = "edit(%s)" % args
+        self.addoredit(args, edit=True)
+        commander.prompt = "loginmgr:"
+        return None
 
     def help_edit(self):
         print('"edit <name>" (Edit the properties of a login entry)')
@@ -619,16 +619,26 @@ class MainInterpreter(cmd.Cmd):
         elif entry in self.logins.logins and edit:
             logger.info('\nOld entry')
             Logins.loginprinter(self.logins.logins[self.entry])
-            self.newlogin = logins.logins[self.entry]
+            self.newlogin = self.logins.logins[self.entry]
             logger.info('\nEdit fields (empty to keep old value)')
             self.editedlogin = input('Login for {0} old:"{1}" :'.format(entry, self.newlogin.get('login', '')))
             self.newlogin['login'] = self.editedlogin or self.newlogin.get('login', '')
             self.editedpassword = input('Password for {0} old:"{1}":'.format(entry, self.newlogin.get('password', '')))
             self.newlogin['password'] = self.editedpassword or self.newlogin.get('password', '')
+            while True:
+                paramanswer = input('Extra parameter for:{0} (empty to exit):'.format(entry))
+                if not paramanswer:
+                    break
+                else:
+                    self.newlogin[paramanswer] = input('Value for {0}:'.format(paramanswer))
         else:
             self.newlogin = {'name': entry}
             self.newlogin['login'] = input('Login for {0}:'.format(entry))
-            self.newlogin['password'] = input('Password for {0}:'.format(entry))
+            suggestpass = genpwd(PWLEN)
+            newpass = input('Password for "{0}" empty for suggested ({1}):'.format(entry, suggestpass))
+            if not newpass:
+                newpass = suggestpass
+            self.newlogin['password'] = newpass
             while True:
                 paramanswer = input('Extra parameter for:{0} (empty to exit):'.format(entry))
                 if not paramanswer:
@@ -654,59 +664,6 @@ class MainInterpreter(cmd.Cmd):
     def help_add(self):
         print('"add" Bring you to the login entry add prompt')
     # end add
-
-
-class AddInterpreter(cmd.Cmd):
-    def __init__(self, logins, filesys, entry, edit=False):
-        super().__init__()
-        self.edit = edit
-        self.logins = logins
-        self.filesys = filesys
-        self.entry = entry
-        if entry in self.logins.logins and not edit:
-            logger.warning('Entry for {0} already exist, either edit or remove existing'.format(0))
-        elif entry in self.logins.logins and edit:
-            logger.info('\nOld entry')
-            Logins.loginprinter(self.logins.logins[self.entry])
-            self.newlogin = logins.logins[self.entry]
-            logger.info('\nEdit fields (empty to keep old value)')
-            self.editedlogin = input('Login for {0} old:"{1}" :'.format(entry, self.newlogin.get('login', '')))
-            self.newlogin['login'] = self.editedlogin or self.newlogin.get('login', '')
-            self.editedpassword = input('Password for {0} old:"{1}":'.format(entry, self.newlogin.get('password', '')))
-            self.newlogin['password'] = self.editedpassword or self.newlogin.get('password', '')
-        else:
-            self.newlogin = {'name': entry}
-            self.newlogin['login'] = input('Login for {0}:'.format(entry))
-            self.newlogin['password'] = input('Password for {0}:'.format(entry))
-            while True:
-                paramanswer = input('Extra parameter for:{0} (empty to exit):'.format(entry))
-                if not paramanswer:
-                    break
-                else:
-                    self.newlogin[paramanswer] = input('Value for {0}:'.format(paramanswer))
-        self.do_print(self.entry)
-        saveanswer = ''
-        while saveanswer not in ('y','n'):
-            saveanswer = input('Save entry y/n? ')[0].lower()
-        if 'y' in saveanswer:
-            self.logins.add(self.newlogin, edit=self.edit)
-        return True
-
-    def do_EOF(self, args):
-        answer = ''
-        Logins.loginprinter(self.newlogin)
-        while answer not in ('y','n'):
-            answer = input('Save entry y/n? ')[0].lower() 
-        if 'y' in answer:
-            self.logins.add(self.newlogin, edit=self.edit)
-        return None
-
-    def help_print(self):
-        print('print current Login entry')
-
-    def do_print(self, args):
-        Logins.loginprinter(self.newlogin)
-        
 
 def commander(filesys, logins):
     try:
