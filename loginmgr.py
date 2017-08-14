@@ -207,6 +207,22 @@ def fullbackup(pathtodir):
     '''Tar / zip and point to full backup of dir'''
     pass
 
+#def to_clipboard(text):
+    #cb = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
+    #cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+    #cb.connect('owner-change',test)
+    #cb.set_text('foooo', -1)
+    #cb.store()
+
+def to_clipboard(text):
+    try:
+        xclipper = subprocess.Popen(['xclip', '-selection', 'c'], stdin=subprocess.PIPE, close_fds=True)
+    except FileNotFoundError:
+        logger.warning('Failed to copy password to clipboard (need "xclip" application)')
+    _, stderr = xclipper.communicate(text.encode('utf-8'))
+    if xclipper.returncode != 0:
+        logger.warning('Failed to copy password to clipboard:', stderr)
+
 #def decrypt(filesys):
 #    if filesys.initializing:
 #        return filesys.bytecontent
@@ -318,9 +334,11 @@ class Logins():
                 strformat = COLORS['green'] + strformat + '\033[1;m'
             if 'password' in key:
                 strformat = COLORS['red'] + strformat + '\033[1;m'
+                to_clipboard(val)
             if 'name' in key:
                 strformat = COLORS['blue'] + strformat + '\033[1;m'
             print(strformat.format(key, val))
+
 
     def load(self, byteobj):
         '''Take in bytes decode json to logins data
@@ -364,6 +382,8 @@ class Logins():
 class FileSysHandler():
     saveformat = '%Y-%m-%d-%H%M%S.enc'
     def clean_backups(self):
+        if self.initializing:
+            return
         try:
             os.remove(self.filepath + '.bkup')
         except FileNotFoundError:
@@ -616,10 +636,8 @@ class MainInterpreter(cmd.Cmd):
                 else:
                     self.newlogin[paramanswer] = input('Value for {0}:'.format(paramanswer))
         Logins.loginprinter(self.newlogin)
-        saveanswer = ''
-        while saveanswer not in ('y','n'):
-            saveanswer = input('Save entry y/n? ')[0].lower()
-        if 'y' in saveanswer:
+        saveanswer = input('Save entry y/n? ').lower()
+        if 'y' in saveanswer or saveanswer == '':
             self.logins.add(self.newlogin, edit=self.edit)
         return
 
