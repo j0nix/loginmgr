@@ -271,7 +271,7 @@ class Logins():
         if edit:
             self.edited.append(login)
         elif self.remove:
-            self.removed.append(login)
+            self.deleted.append(login)
         else:
             self.added.append(login)
 
@@ -321,8 +321,9 @@ class Logins():
             logger.warning('%s is not a configured login', name)
             return False
         self.setupdated(edit=False, remove=True, login=removed)
+        self.logins['META']['deleted'].append((name, self.revision))
         logger.warning('Logins can be restored from older revisions\
-                (i.e history files use "search-history" command to find entries)', name)
+                (i.e history files use "hist-*" commands to find entries)')
         logger.warning('Removed login %s', name)
         return True
 
@@ -380,14 +381,14 @@ class Logins():
 
     def __init__(self, byteobj, initializing=False):
         self.changed = False
-        self.removed = []
+        self.deleted = []
         self.edited = []
         self.added = []
         if initializing:
             self.logins = {}
             self.revision = 1
             self.newrevision = 1
-            firstlogin = self.add({'name': 'META', 'password': 'META', 'login': 'META', 'revision': self.revision } )
+            firstlogin = self.add({'name': 'META', 'password': 'META', 'login': 'META', 'revision': self.revision, 'deleted': [] } )
         else:
             if byteobj:
                 self.load(byteobj)
@@ -582,6 +583,23 @@ class MainInterpreter(cmd.Cmd):
                     print(name)
     # end ls
 
+    # search
+    def do_search(self, args):
+        '''Search all logins for a match, and inside all key/values for a match too'''
+        searchresults = []
+        args = args.lower()
+        for entry in self.logins.logins.keys():
+            if args in entry:
+                print(entry)
+            for key, val in self.logins.logins[entry].items():
+                if args in str(key).lower() or args in str(val).lower():
+                    print("{0}: {1}:{2}".format(entry, key, val))
+        return
+
+    def help_get(self):
+        print('"search <text>" Search all logins for a match, and inside all key/values for a match too')
+    # end search
+
     def do_EOF(self, args):
         self.do_quit(args)
 
@@ -629,18 +647,16 @@ class MainInterpreter(cmd.Cmd):
             while yesno not in ('y','n'):
                 yesno = input('Remove entry %s y/n? ' % args)[0].lower()
             if 'y' in yesno:
-                self.logins.remove(args)
+                yesno = input('Really sure you want to remove %s y/n? ' % args)[0].lower()
+                if 'y' in yesno:
+                    self.logins.remove(args)
         return
+
+    def help_rm(self):
+        print('"rm <name>" (Remove the properties of a login entry)')
 
     complete_rm = complete_entries
     # end rm
-
-    # search
-    def do_search(self, args):
-        for entry in self.logins.logins.keys():
-            if args in entry:
-                print(entry.replace(args, COLORS['red'] + args + '\033[1;m'))
-        return
 
     # add
     def addoredit(self, entry, edit=False):
