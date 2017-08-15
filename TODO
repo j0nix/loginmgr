@@ -1,8 +1,19 @@
-add unit tests
-
-add revision search
-
-add auto suggest randomized password V
-
-add config file functions
+### TODO
+- [x] auto suggest randomized password V
+- [x] auto suggest randomized password with 's' (suggest) pass prompt
+- [x] add function argument pwhide=True to loginprinter
+- [x] use 'get' function to retrieve entries  (password not shown)
+- [x] only show password on 'cat' 
+- [x] hide password on ls
+- [x] filter out META and salt on ls
+- [x] filter out metadata on ls and get, not cat
+- [x] print login, name, password on top 
+- [ ] make ^d quit as well as ^c
+- [ ] config file functions
+- [ ] revision search (make list of removed entries) should be dict with a list value with a list of revisions as value
+- [ ] clean function on save. (inventory if belonging revision files exist for "removedlist" then remove entries without belonging revisions)
+- [ ] unit tests
+- [ ] full backup function
+- [ ] command line parsing
+- [ ] command line retrieval
 

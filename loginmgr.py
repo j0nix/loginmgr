@@ -68,6 +68,7 @@ LOGFORMATDEBUG = '%(asctime)s %(levelname)s: line:%(lineno)d  func:%(funcName)s;
 logger = logging.getLogger('loginmgr')
 COLORS = {'grey': '\033[1;30m', 'red':'\033[1;31m', 'green':'\033[1;32m', 'yellow':'\033[1;33m',\
         'brown':'\033[0;33m', 'blue':'\033[1;34m', 'magenta':'\033[1;35m', 'cyan':'\033[1;36m', 'white':'\033[1;37m', 'stndrd':'\033[0m'}
+filtered_meta = ('META', 'SALT', 'old_revisions', 'ctime', 'mtime')
 
 if DEBUG:
     logger.setLevel(logging.DEBUG)
@@ -325,20 +326,33 @@ class Logins():
         logger.warning('Removed login %s', name)
         return True
 
-    def loginprinter(login):
-        print(login)
+    def loginprinter(login, pwhide=True, clipboard=False, filtermeta=True):
+        printfirstkeys = ('name', 'login', 'password')
         print('{0}:'.format(login['name']))
         maxlen = str(maxstrlen(login.keys()))
+        printrest = [key for key in login.keys() if key not in printfirstkeys]
+        printlist = []
+
         for key, val in login.items():
             strformat = '{0:<' + maxlen + '} : {1}'
+            if filtermeta and key in filtered_meta:
+                continue
             if 'login' in key:
                 strformat = COLORS['green'] + strformat + '\033[1;m'
-            if 'password' in key:
+                printlist.insert(1, strformat.format(key, '-' if pwhide and key == 'password' else val))
+            elif 'password' in key:
                 strformat = COLORS['red'] + strformat + '\033[1;m'
-                to_clipboard(val)
-            if 'name' in key:
+                printlist.insert(2, strformat.format(key, '-' if pwhide and key == 'password' else val))
+                if clipboard:
+                    to_clipboard(val)
+            elif 'name' in key:
                 strformat = COLORS['blue'] + strformat + '\033[1;m'
-            print(strformat.format(key, val))
+                printlist.insert(0, strformat.format(key, '-' if pwhide and key == 'password' else val))
+            else:
+                printlist.append(strformat.format(key, '-' if pwhide and key == 'password' else val))
+            #print(strformat.format(key, '-' if pwhide and key == 'password' else val))
+        for printout in printlist:
+            print(printout)
 
 
     def load(self, byteobj):
@@ -541,6 +555,13 @@ class MainInterpreter(cmd.Cmd):
         self.prompt = 'loginmgr:'
         print(self.commandsstring)
 
+    def complete_entries(self, text, line, begidx, endidx):
+        if not text:
+            completions = self.logins.logins.keys()
+        else:
+            completions = [f for f in self.logins.logins.keys() if f.startswith(text.strip())]
+        return completions
+
     def do_quit(self, args):
         print('Quitting')
 
@@ -548,12 +569,8 @@ class MainInterpreter(cmd.Cmd):
         for name, entry in self.logins.logins.items():
             Logins.loginprinter(entry)
 
-    def complete_ls(self, text, line, begidx, endidx):
-        if not text:
-            completions = self.logins.logins.keys()
-        else:
-            completions = [f for f in self.logins.logins.keys() if f.startswith(text.strip())]
-        return completions
+    # ls
+    complete_ls = complete_entries
 
     def do_ls(self, args):
         if args:
@@ -561,11 +578,36 @@ class MainInterpreter(cmd.Cmd):
                 Logins.loginprinter(self.logins.logins[args])
         else:
             for name in self.logins.logins.keys():
-                print(name)
+                if not name in filtered_meta:
+                    print(name)
     # end ls
 
     def do_EOF(self, args):
         self.do_quit(args)
+
+    # get
+    def do_get(self, args):
+        if args:
+            if args in self.logins.logins:
+                Logins.loginprinter(self.logins.logins[args], pwhide=True, clipboard=True)
+
+    def help_get(self):
+        print('"get <name>" (Get a login entry) copy pw to clipboard however do not show it')
+
+    complete_get = complete_entries
+    # end get
+
+    # cat
+    def do_cat(self, args):
+        if args:
+            if args in self.logins.logins:
+                Logins.loginprinter(self.logins.logins[args], pwhide=False, clipboard=False)
+
+    def help_cat(self):
+        print('"cat <name>" (Dump all existing information of a login entry)')
+
+    complete_cat = complete_entries
+    # end cat
 
     # edit
     def do_edit(self, args):
@@ -577,12 +619,7 @@ class MainInterpreter(cmd.Cmd):
     def help_edit(self):
         print('"edit <name>" (Edit the properties of a login entry)')
 
-    def complete_edit(self, text, line, begidx, endidx):
-        if not text:
-            completions = self.logins.logins.keys()
-        else:
-            completions = [f for f in self.logins.logins.keys() if f.startswith(text.strip())]
-        return completions
+    complete_edit = complete_entries
     # end edit
 
     # rm
@@ -595,12 +632,7 @@ class MainInterpreter(cmd.Cmd):
                 self.logins.remove(args)
         return
 
-    def complete_rm(self, text, line, begidx, endidx):
-        if not text:
-            completions = self.logins.logins.keys()
-        else:
-            completions = [f for f in self.logins.logins.keys() if f.startswith(text.strip())]
-        return completions
+    complete_rm = complete_entries
     # end rm
 
     # search
