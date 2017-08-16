@@ -588,14 +588,24 @@ class MainInterpreter(cmd.Cmd):
             completions = [f for f in self.logins.logins.keys() if f.startswith(text.strip())]
         return completions
 
+    # quit
     def do_quit(self, args):
-        print('Quitting' + ' and saving!' if self.save else ' without saving!'  )
+        print('Quitting' + ' and saving!' if self.save else ' without saving!')
         quit(self.filesys, self.logins, self.save)
+
+    def help_quit(self):
+        print('"quit" quit, encrypt and save. If there was changes a new revision will be saved and the oldest one rotated out')
+
+    do_q = do_quit
+    # end quit
 
     def do_dump(self, args):
         for name, entry in self.logins.logins.items():
             Logins.loginprinter(entry, pwhide=True, clipboard=False, filtermeta=False)
             print()
+
+    def help_dump(self):
+        print('"dump" dump everything')
 
     # ls
     complete_ls = complete_entries
@@ -608,6 +618,9 @@ class MainInterpreter(cmd.Cmd):
             for name in self.logins.logins.keys():
                 if not name in filtered_meta_words:
                     print(name)
+
+    def help_ls(self):
+        print('"ls <text> | ls " list all entries names (no argument) or if specified list details of one specific')
     # end ls
 
     # search

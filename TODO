@@ -12,6 +12,7 @@
 - [ ] restore command, to retreive old revision of login
 - [x] make ^d quit as well as ^c
 - [x] human friendly printing of ctime + mtime
+- [ ] do not make revision updates on additions. Only on edit and remove.
 - [ ] revision search (make list of removed entries) should be dict with a list value with a list of revisions as value
 - [ ] config file functions
 - [ ] clean function on save. (inventory if belonging revision files exist for "removedlist" then remove entries without belonging revisions)
