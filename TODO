@@ -11,6 +11,7 @@
 - [x] implement search function, search all key / value pairs and create list of possibilitites
 - [ ] restore command, to retreive old revision of login
 - [x] make ^d quit as well as ^c
+- [x] human friendly printing of ctime + mtime
 - [ ] revision search (make list of removed entries) should be dict with a list value with a list of revisions as value
 - [ ] config file functions
 - [ ] clean function on save. (inventory if belonging revision files exist for "removedlist" then remove entries without belonging revisions)

@@ -69,7 +69,7 @@ LOGFORMATDEBUG = '%(asctime)s %(levelname)s: line:%(lineno)d  func:%(funcName)s;
 logger = logging.getLogger('loginmgr')
 COLORS = {'grey': '\033[1;30m', 'red':'\033[1;31m', 'green':'\033[1;32m', 'yellow':'\033[1;33m',\
         'brown':'\033[0;33m', 'blue':'\033[1;34m', 'magenta':'\033[1;35m', 'cyan':'\033[1;36m', 'white':'\033[1;37m', 'stndrd':'\033[0m'}
-filtered_meta = ('META', 'SALT', 'old_revisions', 'ctime', 'mtime')
+filtered_meta_words = ('META', 'SALT', 'old_revisions', 'ctime', 'mtime')
 
 if DEBUG:
     logger.setLevel(logging.DEBUG)
@@ -171,13 +171,19 @@ def decrypt(byteobj):
     logger.debug('Type byteobj: %s', type(encbytes))
     try:
         decryptedbytes = decryptiontoken.decrypt(encbytes)
+        return decryptedbytes
     except TypeError:
         logger.critical('Failed to decrypt content, content corrupted?!?!')
         #todo implement recovery (suggestions and action)
         raise
     except InvalidToken:
         logger.warning('Wrong password')
-        decrypt(encbytes)
+        return None
+
+def decrypter(byteobj):
+    decryptedbytes = decrypt(byteobj)
+    while not decryptedbytes:
+        decryptedbytes = decrypt(byteobj)
     return decryptedbytes
 
 def encrypt(byteobj):
@@ -250,6 +256,7 @@ def quit(filesys, logins, save=True):
         sys.exit(0)
     encryptedbytes = encrypt(logins.save())
     filesys.feedandsave(encryptedbytes, logins)
+    sys.exit(0)
 
 class Login():
     def __init__(self):
@@ -342,7 +349,7 @@ class Logins():
 
         for key, val in login.items():
             strformat = '{0:<' + maxlen + '} : {1}'
-            if filtermeta and key in filtered_meta:
+            if filtermeta and key in filtered_meta_words:
                 continue
             if 'login' in key:
                 strformat = COLORS['green'] + strformat + '\033[1;m'
@@ -417,9 +424,13 @@ class FileSysHandler():
                 self.saveformat), reverse=True)
         if len(self.oldbackups) > BKUPNR:
             self.cleanbkups = self.oldbackups[10:]
-            for f in self.cleanbkups:
-                logger.info('Cleaning old backup: %s' % f)
+            for backupfile in self.cleanbkups:
+                logger.info('Cleaning old backup file:%s' % backupfile)
                 os.remove(f)
+                for backuplink in glob(REVISION_PREFIX + '*'):
+                    if os.path.basename(os.readlink(backuplink)) == os.path.basename(backupfile):
+                        os.remove(backuplink)
+                        logger.info('Cleaning old revision:%s' % backupfile)
         else:
             logger.debug('No cleaning of backups needed')
 
@@ -583,7 +594,8 @@ class MainInterpreter(cmd.Cmd):
 
     def do_dump(self, args):
         for name, entry in self.logins.logins.items():
-            Logins.loginprinter(entry)
+            Logins.loginprinter(entry, pwhide=True, clipboard=False, filtermeta=False)
+            print()
 
     # ls
     complete_ls = complete_entries
@@ -594,7 +606,7 @@ class MainInterpreter(cmd.Cmd):
                 Logins.loginprinter(self.logins.logins[args])
         else:
             for name in self.logins.logins.keys():
-                if not name in filtered_meta:
+                if not name in filtered_meta_words:
                     print(name)
     # end ls
 
@@ -634,7 +646,7 @@ class MainInterpreter(cmd.Cmd):
     def do_cat(self, args):
         if args:
             if args in self.logins.logins:
-                Logins.loginprinter(self.logins.logins[args], pwhide=False, clipboard=False)
+                Logins.loginprinter(self.logins.logins[args], pwhide=False, clipboard=False, filtermeta=False)
 
     def help_cat(self):
         print('"cat <name>" (Dump all existing information of a login entry)')
@@ -743,7 +755,7 @@ class MainInterpreter(cmd.Cmd):
         if not revfile:
             return None
         self.filesys = FileSysHandler(revfile)
-        self.logins = Logins(decrypt(self.filesys.get_raw_content()))
+        self.logins = Logins(decrypter(self.filesys.get_raw_content()))
         self.oldrevision = True
         self.save = False
         print('Saving will be disabled when working on old revision.\
@@ -769,7 +781,7 @@ def main():
     parseargs()
     filesys = FileSysHandler(FNAME)
     if not filesys.initializing:
-        decrypted = decrypt(filesys.get_raw_content())
+        decrypted = decrypter(filesys.get_raw_content())
         logins = Logins(decrypted)
     else:
         logins = Logins(None, initializing=True)
