@@ -57,6 +57,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 DEBUG = True
 WORK_PATH = '/home/carl/Code/loginmgr/TEST/'
+REVISION_PREFIX = 'revision-'
 FNAME = 'testfile.crypt'
 BKUPNR = 10 # nr of backups to keep
 SPECIAL_CHARS = '_!?.&+-'
@@ -77,6 +78,9 @@ if DEBUG:
 else:
     logging.basicConfig(format=LOGFORMAT, stream=sys.stderr) # add logfile option
     logger.setLevel(logging.INFO)
+
+class NoRevisionFound(Exception):
+    pass
 
 def parseargs():
     '''
@@ -240,8 +244,10 @@ def to_clipboard(text):
 #        logger.warning('Wrong password')
 #        decrypt(byteobj)
 
-def quit(filesys, logins):
+def quit(filesys, logins, save=True):
     logger.debug('Quitting with logins: {0}, filesys: {1}'.format(logins, filesys))
+    if not save:
+        sys.exit(0)
     encryptedbytes = encrypt(logins.save())
     filesys.feedandsave(encryptedbytes, logins)
 
@@ -509,12 +515,20 @@ class FileSysHandler():
                         self.encryptedpath, self.encryptedpathexc)
 
     @property
-    def revision_files(self):
-        revisions = {}
+    def revisions(self):
+        revisionlist = {}
         revfilelinks = glob(WORK_PATH + os.path.sep + 'revision-' + '*')
         for revfile in revfilelinks:
-            revisions[revfile] = os.readlink(revfile)
-        return revisions
+            revisionlist[revfile] = os.readlink(revfile)
+        return revisionlist
+
+    def revisiongetter(revisionnr):
+        '''Takes an int and returns a path to use'''
+        revision = WORK_PATH + os.path.sep + REVISION_PREFIX + str(revisionnr)
+        if not os.path.islink(revision):
+            logger.warning('Failed to find file for revision:', revisionnr )
+            return None
+        return os.path.basename(revision)
 
     def __init__(self, path):
         self.initializing = False
@@ -530,7 +544,6 @@ class FileSysHandler():
         #self.backup_first()
         self.backupfiles = glob(WORK_PATH + os.path.sep + '*' + '.enc')
         self.bytecontent =  self.get_raw_content()
-
 
 #### Filesystem handling END ####
 
@@ -554,6 +567,7 @@ class MainInterpreter(cmd.Cmd):
         self.logins = logins
         self.filesys = filesys
         self.prompt = 'loginmgr:'
+        self.save = True
         print(self.commandsstring)
 
     def complete_entries(self, text, line, begidx, endidx):
@@ -564,7 +578,8 @@ class MainInterpreter(cmd.Cmd):
         return completions
 
     def do_quit(self, args):
-        print('Quitting')
+        print('Quitting' + ' and saving!' if self.save else ' without saving!'  )
+        quit(self.filesys, self.logins, self.save)
 
     def do_dump(self, args):
         for name, entry in self.logins.logins.items():
@@ -596,7 +611,7 @@ class MainInterpreter(cmd.Cmd):
                     print("{0}: {1}:{2}".format(entry, key, val))
         return
 
-    def help_get(self):
+    def help_search(self):
         print('"search <text>" Search all logins for a match, and inside all key/values for a match too')
     # end search
 
@@ -713,12 +728,38 @@ class MainInterpreter(cmd.Cmd):
         print('"add" Bring you to the login entry add prompt')
     # end add
 
+    # revls
+    def do_revls(self, args):
+        for rev in self.filesys.revisions:
+            print(rev.strip('revision-'))
+
+    def help_revls(self):
+        print('"revls" list available revisions')
+    # end revls
+
+    # revopen
+    def do_revopen(self, args):
+        revfile = FileSysHandler.revisiongetter(args)
+        if not revfile:
+            return None
+        self.filesys = FileSysHandler(revfile)
+        self.logins = Logins(decrypt(self.filesys.get_raw_content()))
+        self.oldrevision = True
+        self.save = False
+        print('Saving will be disabled when working on old revision.\
+                Retreive what is needed and copy and save in the latest revision manueally.')
+        return 
+
+    def help_revls(self):
+        print('"revopen <nr>" open available revision (read only)\nPassword that was used to encrypt that revision must be provided (maybe not the same as for the current one)')
+    # end revopen
+
 def commander(filesys, logins):
     try:
         cmdr = MainInterpreter(filesys, logins)
         cmdr.cmdloop()
     except KeyboardInterrupt as e:
-        quit(filesys, logins)
+        quit(filesys, logins, cmdr.save)
         sys.exit()
 
 ##### Commands END #####
@@ -734,7 +775,7 @@ def main():
         logins = Logins(None, initializing=True)
 
     commander(filesys, logins)
-    atexit.register(quit, filesys, logins)
+    atexit.register(quit, filesys, logins, logins.save)
     #signal.signal(1, quit(filesys, logins))
     #signal.signal(2, quit(filesys, logins))
     #signal.signal(signal.SIGINT, quit(filesys, logins))
