@@ -9,17 +9,16 @@
 - [x] filter out metadata on ls and get, not cat
 - [x] print login, name, password on top 
 - [x] implement search function, search all key / value pairs and create list of possibilitites
-- [ ] 'search' arg on cli so that we can just print one entry and exit after.
-- [ ] restore command, to retreive old revision of login
+- [x] 'entry' arg on cli so that we can just print one entry and exit after.
 - [x] make ^d quit as well as ^c
 - [x] human friendly printing of ctime + mtime
-- [ ] do not make revision updates on additions. Only on edit and remove.
+- [x] do not make revision updates on additions. Only on edit and remove.
+- [ ] restore command, to retreive old revision of login
 - [ ] revision search (make list of removed entries) should be dict with a list value with a list of revisions as value
 - [ ] config file functions
 - [ ] clean function on save. (inventory if belonging revision files exist for "removedlist" then remove entries without belonging revisions)
 - [ ] unit tests
 - [ ] full backup function
 - [ ] command line parsing
-- [ ] command line retrieval
 - [ ] create setup.py
 

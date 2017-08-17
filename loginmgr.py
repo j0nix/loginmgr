@@ -66,6 +66,7 @@ SPECIAL_CHARS = '_!?.&+-'
 STARTDIR = os.getcwd()
 PWLEN = 20
 saltlength = 16
+TIMEFORMAT = '%Y-%m-%d %H:%M:%S'
 LOGFORMAT = '%(asctime)s %(levelname)s: %(message)s'
 LOGFORMATDEBUG = '%(asctime)s %(levelname)s: line:%(lineno)d  func:%(funcName)s;  %(message)s'
 filtered_meta_words = ('META', 'SALT', 'old_revisions', 'ctime', 'mtime')
@@ -294,10 +295,10 @@ class Logins():
 
         login = {}
         if not edit:
-            login['ctime'] = time.time()
+            login['ctime'] = time.strftime(TIMEFORMAT)
         if edit:
             # Some info so that we can retreive last editions
-            login['mtime'] = time.time()
+            login['mtime'] = time.strftime(TIMEFORMAT)
             if 'old_revisions' in login:
                 login['old_revisions'].append(self.revision) 
             else:
@@ -318,7 +319,8 @@ class Logins():
             logger.warning('No password set for %s', config['name'])
 
         self.logins[config['name']] = login
-        self.setupdated(edit, remove=False, login=login)
+        if edit: # we only change revision on edit and remove
+            self.setupdated(edit, remove=False, login=login)
 
     def edit(self, config={}):
         self.add(config={}, edit=True)
@@ -421,12 +423,12 @@ class FileSysHandler():
         if len(self.oldbackups) > BKUPNR:
             self.cleanbkups = self.oldbackups[10:]
             for backupfile in self.cleanbkups:
-                logger.info('Cleaning old backup file:%s' % backupfile)
-                os.remove(f)
+                logger.info('Cleaning old backup file: %s' % backupfile)
+                os.remove(backupfile)
                 for backuplink in glob(REVISION_PREFIX + '*'):
                     if os.path.basename(os.readlink(backuplink)) == os.path.basename(backupfile):
                         os.remove(backuplink)
-                        logger.info('Cleaning old revision:%s' % backupfile)
+                        logger.info('Cleaning old revision: %s' % backuplink)
         else:
             logger.debug('No cleaning of backups needed')
 
@@ -776,6 +778,7 @@ class MainInterpreter(cmd.Cmd):
     # end revopen
 
 def commander(filesys, logins):
+    '''Main command interpreter'''
     try:
         cmdr = MainInterpreter(filesys, logins)
         cmdr.cmdloop()
@@ -786,6 +789,7 @@ def commander(filesys, logins):
 ##### Commands END #####
 
 def entryprint(logins, entryargs):
+    '''Print one entry that begins with the string provided on cli and exit'''
     entries = [f for f in logins.logins.keys() if f.startswith(entryargs[0].strip())]
     for entry in entries:
         Logins.loginprinter(logins.logins[entry], pwhide=args.pwdisplay, clipboard=True)
@@ -800,6 +804,8 @@ def main():
         logins = Logins(decrypted)
     else:
         logins = Logins(None, initializing=True)
+    print('Revision {0[revision]}'.format(logins.logins['META']))
+    print('{} entries'.format(len(logins.logins) - 2))
 
     if args.entry:
         entryprint(logins, args.entry)
