@@ -567,9 +567,7 @@ class MainInterpreter(cmd.Cmd):
     case, a line beginning with the character '?' is dispatched to the method
     do_help(). As another special case, a line beginning with the character '!'
     is dispatched to the method do_shell() (if such a method is defined). '''
-
-    commands = ['add', 'ls', 'edit', 'dump', 'find', 'help', 'rm', 'quit']
-    commandsstring = ' '.join(commands).strip()
+    intro = 'Welcome to loginmgr shell. Type help or ? to list commands.\n'
 
     def __init__(self, filesys, logins):
         super().__init__()
@@ -577,7 +575,7 @@ class MainInterpreter(cmd.Cmd):
         self.filesys = filesys
         self.prompt = 'loginmgr:'
         self.save = True
-        print(self.commandsstring)
+        self.do_help('')
 
     def complete_entries(self, text, line, begidx, endidx):
         if not text:
@@ -595,6 +593,7 @@ class MainInterpreter(cmd.Cmd):
         print('"quit" quit, encrypt and save. If there was changes a new revision will be saved and the oldest one rotated out')
 
     do_q = do_quit
+    help_q = help_quit
     # end quit
 
     def do_dump(self, args):
@@ -773,7 +772,7 @@ class MainInterpreter(cmd.Cmd):
                 Retreive what is needed and copy and save in the latest revision manueally.')
         return 
 
-    def help_revls(self):
+    def help_revopen(self):
         print('"revopen <nr>" open available revision (read only)\nPassword that was used to encrypt that revision must be provided (maybe not the same as for the current one)')
     # end revopen
 
