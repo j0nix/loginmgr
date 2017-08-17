@@ -56,6 +56,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 DEBUG = True
+COLORS = {'grey': '\033[1;30m', 'red':'\033[1;31m', 'green':'\033[1;32m', 'yellow':'\033[1;33m',\
+        'brown':'\033[0;33m', 'blue':'\033[1;34m', 'magenta':'\033[1;35m', 'cyan':'\033[1;36m', 'white':'\033[1;37m', 'stndrd':'\033[0m'}
 WORK_PATH = '/home/carl/Code/loginmgr/TEST/'
 REVISION_PREFIX = 'revision-'
 FNAME = 'testfile.crypt'
@@ -66,18 +68,8 @@ PWLEN = 20
 saltlength = 16
 LOGFORMAT = '%(asctime)s %(levelname)s: %(message)s'
 LOGFORMATDEBUG = '%(asctime)s %(levelname)s: line:%(lineno)d  func:%(funcName)s;  %(message)s'
-logger = logging.getLogger('loginmgr')
-COLORS = {'grey': '\033[1;30m', 'red':'\033[1;31m', 'green':'\033[1;32m', 'yellow':'\033[1;33m',\
-        'brown':'\033[0;33m', 'blue':'\033[1;34m', 'magenta':'\033[1;35m', 'cyan':'\033[1;36m', 'white':'\033[1;37m', 'stndrd':'\033[0m'}
 filtered_meta_words = ('META', 'SALT', 'old_revisions', 'ctime', 'mtime')
 
-if DEBUG:
-    logger.setLevel(logging.DEBUG)
-    logger.debug('Debugging enabled')
-    logging.basicConfig(format=LOGFORMATDEBUG, stream=sys.stderr) # add logfile option
-else:
-    logging.basicConfig(format=LOGFORMAT, stream=sys.stderr) # add logfile option
-    logger.setLevel(logging.INFO)
 
 class NoRevisionFound(Exception):
     pass
@@ -86,13 +78,16 @@ def parseargs():
     '''
     argument parsing
     '''
-    parser = argparse.ArgumentParser(description='Login database manager.')
-    parser.add_argument('-P' '--path', dest='path', action='store', default='TEST',\
+    parser = argparse.ArgumentParser(description='Login manager.')
+    parser.add_argument('entry', metavar='e', type=str, nargs='*', help='print single entry')
+    parser.add_argument('-p' '--path', dest='path', action='store', default='TEST',\
             help='path to directory')
-    parser.add_argument('-P' '--provider', dest='provider',\
-            action='store', default='file', help='Base storage method')
     parser.add_argument('-s' '--setup', dest='setup', action='store_true',\
             default=False, help='Base storage method')
+    parser.add_argument('-d' '--debug', dest='debug', action='store_true',\
+            default=False, help='Enable debugging')
+    parser.add_argument('-P' '--password-display', dest='pwdisplay', action='store_false',\
+            default=True, help='Display passwords on printout of entries (when entries are given as argument)')
     args = parser.parse_args()
     return args
 
@@ -252,6 +247,7 @@ def to_clipboard(text):
 
 def quit(filesys, logins, save=True):
     logger.debug('Quitting with logins: {0}, filesys: {1}'.format(logins, filesys))
+    print()
     if not save:
         sys.exit(0)
     encryptedbytes = encrypt(logins.save())
@@ -484,7 +480,7 @@ class FileSysHandler():
                 logger.warning('No available file to open!')
                 return False
         if os.path.islink(self.encryptedpath):
-            logger.info('opening %s', filepath)
+            logger.info('opening %s', self.filepath)
             with open(self.filepath, 'rb') as fh:
                 byteobj = fh.read()
                 logger.debug('Returning read file "%s"', type(byteobj))
@@ -789,9 +785,15 @@ def commander(filesys, logins):
 
 ##### Commands END #####
 
+def entryprint(logins, entryargs):
+    entries = [f for f in logins.logins.keys() if f.startswith(entryargs[0].strip())]
+    for entry in entries:
+        Logins.loginprinter(logins.logins[entry], pwhide=args.pwdisplay, clipboard=True)
+        print()
+    sys.exit(0)
+
 def main():
     atexit.register(backtodir)
-    parseargs()
     filesys = FileSysHandler(FNAME)
     if not filesys.initializing:
         decrypted = decrypter(filesys.get_raw_content())
@@ -799,17 +801,26 @@ def main():
     else:
         logins = Logins(None, initializing=True)
 
+    if args.entry:
+        entryprint(logins, args.entry)
+
     commander(filesys, logins)
     atexit.register(quit, filesys, logins, logins.save)
-    #signal.signal(1, quit(filesys, logins))
-    #signal.signal(2, quit(filesys, logins))
-    #signal.signal(signal.SIGINT, quit(filesys, logins))
-
-#    key = Fernet.generate_key()
-#    f = Fernet(key)
-#    token = f.encrypt(b"my deep dark secret")
-#    token
-#    print(f.decrypt(token))
 
 if __name__ in '__main__':
+    args = parseargs()
+    loginmgrlogger = logging.StreamHandler(stream=sys.stderr)
+    logger = logging.getLogger("loginmgr")
+    logger.addHandler(loginmgrlogger)
+
+    if args.debug:
+        dbgformatter = logging.Formatter(LOGFORMATDEBUG)
+        logger.setLevel(logging.DEBUG)
+        loginmgrlogger.setFormatter(dbgformatter)
+        logger.debug('Debugging enabled')
+    else:
+        formatter = logging.Formatter(LOGFORMAT)
+        loginmgrlogger.setFormatter(formatter)
+        logger.setLevel(logging.INFO)
+    logger.debug('Cli arguments: %s', args)
     main()

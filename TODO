@@ -9,6 +9,7 @@
 - [x] filter out metadata on ls and get, not cat
 - [x] print login, name, password on top 
 - [x] implement search function, search all key / value pairs and create list of possibilitites
+- [ ] 'search' arg on cli so that we can just print one entry and exit after.
 - [ ] restore command, to retreive old revision of login
 - [x] make ^d quit as well as ^c
 - [x] human friendly printing of ctime + mtime
