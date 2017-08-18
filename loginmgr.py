@@ -11,24 +11,6 @@ shred to run ~20 times using random numbers, zeroes and delete the file
 when it finished.  Journal will log the transactions issued by shred
 against the file not the contents.
 
-1. Handle files with backups
-    a. files should be backed up with N copies. Only when changes were done
-    b. link to the latest backup should be handled as the latest copy
-
-2. Encryption and decryption
-    a. Program should not be allowd to terminate with decrypted content
-    b. Encryption and decryption method should be pluggable
-
-3. Storage of entries
-    a. entries should be able to arbitrary key: values
-    b. each entry must have a utf-8 encoded name as key
-    c. the value for that should be an dictionary
-    try json ... try sqlite
-
-4. command line should be able to encrypt / decrypt
-    1. add / edit / remove entries
-    2. edit add keys to existing entries
-
 '''
 
 import sys
@@ -58,13 +40,13 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 DEBUG = True
 COLORS = {'grey': '\033[1;30m', 'red':'\033[1;31m', 'green':'\033[1;32m', 'yellow':'\033[1;33m',\
         'brown':'\033[0;33m', 'blue':'\033[1;34m', 'magenta':'\033[1;35m', 'cyan':'\033[1;36m', 'white':'\033[1;37m', 'stndrd':'\033[0m'}
-WORK_PATH = '/home/carl/Code/loginmgr/TEST/'
+WORK_PATH = os.path.expanduser("~/.loginmgr")
 REVISION_PREFIX = 'revision-'
-FNAME = 'testfile.crypt'
+FNAME = 'loginmgr.crypt'
 BKUPNR = 10 # nr of backups to keep
 SPECIAL_CHARS = '_!?.&+-'
 STARTDIR = os.getcwd()
-PWLEN = 20
+PWLEN = 21
 saltlength = 16
 TIMEFORMAT = '%Y-%m-%d %H:%M:%S'
 LOGFORMAT = '%(asctime)s %(levelname)s: %(message)s'
@@ -81,8 +63,6 @@ def parseargs():
     '''
     parser = argparse.ArgumentParser(description='Login manager.')
     parser.add_argument('entry', metavar='e', type=str, nargs='*', help='print single entry')
-    parser.add_argument('-p' '--path', dest='path', action='store', default='TEST',\
-            help='path to directory')
     parser.add_argument('-s' '--setup', dest='setup', action='store_true',\
             default=False, help='Base storage method')
     parser.add_argument('-d' '--debug', dest='debug', action='store_true',\
@@ -121,8 +101,19 @@ def genpwd(length=20):
     >>> type(genpwd())
     <class 'str'>
     '''
-    pwd = ''.join(random.sample(string.ascii_letters * 7 + string.digits * 7 +\
-            SPECIAL_CHARS, k=length))[:length]
+    def pre6pwgen(length):
+        pwd = ''.join(random.sample(string.ascii_letters * 7 + string.digits * 7 +\
+                SPECIAL_CHARS, k=length))[:length]
+        return pwd
+    def post6pwgen(length):
+        return secrets.token_urlsafe(length)
+    if sys.version_info[0] == 3 and sys.version_info[1] >= 6: 
+        import secrets
+        pwdgen = post6pwgen
+    else:
+        pwdgen = pre6pwgen
+
+    pwd = pwdgen(length)
     while not complexitycheck(pwd):
         pwd = ''.join(random.sample(string.ascii_letters * 7 + string.digits *\
                 7 + SPECIAL_CHARS * 2, k=length))[:length]
@@ -452,7 +443,7 @@ class FileSysHandler():
         '''
         #self.revisionpath = os.path.realpath('revision-' + str(logins.newrevision))
         self.revisionpath = WORK_PATH + 'revision-' + str(logins.newrevision)
-        if logins.newrevision == logins.revision:
+        if logins.newrevision == logins.revision and not self.initializing:
             # if there was no edit we use the old file paths
             self.savepath = self.filepath
             shutil.move(self.filepath, self.filepath + '.bkup')
@@ -479,6 +470,7 @@ class FileSysHandler():
     def get_raw_content(self, filepath=None):
         ''' Sanity check that we have a path and main file to work with. No filepath == latest'''
         if self.initializing:
+            self.filepath = os.path.join(WORK_PATH, FNAME)
             return BytesIO()
         self.filepath = filepath
         if not self.filepath: # todo here make it possible to open backups

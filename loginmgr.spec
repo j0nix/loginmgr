@@ -32,7 +32,7 @@ echo "Making"
 
 %install
 echo "installing"
-mkdir %{buildroot}
+#mkdir %{buildroot}
 
 install -p -D -m 0755 %{SOURCE0} \
     %{buildroot}/loginmgr
@@ -53,5 +53,5 @@ echo "postun"
 %{_bindir}/loginmgr
 
 %changelog
-* Thu Aug 13 2016 Carl Hartman <https://github.com/belsebubben> - 0.1
+* Fri Aug 18 2017 Carl Hartman <https://github.com/belsebubben> - 0.1
 - Inifial build
