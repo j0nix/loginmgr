@@ -2,13 +2,13 @@
 simple encrypted storage and manager for logins with small and simple revision handling remove / add / edit entries. Get retreives to clipboard (xclip). Written for linux,
 Requires pythohn 3+. Python 3.6+ is preferred.
 
-Usage: loginmgr | loginmgr <entry>
+Usage: loginmgr | loginmgr "entry"
 
 loginmgr without entry argument brings you to the shell
 
 Shell cli
 ```
-Documented commands (type help <topic>):
+Documented commands (type help topic):
 ========================================
 add  cat  dump  edit  get  help  ls  q  quit  revls  revopen  rm  search
 
@@ -35,3 +35,22 @@ Password that was used to encrypt that revision must be provided (maybe not the 
 
 "search <text>" Search all logins for a match, and inside all key/values for a match too
 ```
+
+exampe add:
+
+```
+loginmgr:add secretsite.com
+Login for secretsite.com:loginname@my.domain.com
+Password for "secretsite.com" empty for suggested (aB1cpmJP75yLVemSx91V-E4lvHeJ):
+Extra parameter for:secretsite.com (empty to exit):belsebubben
+Value for belsebubben:1
+Extra parameter for:secretsite.com (empty to exit):
+secretsite.com:
+name        : secretsite.com
+login       : loginname@my.domain.com
+password    : -
+belsebubben : 1
+Save entry y/n? y
+```
+
+example rm:
