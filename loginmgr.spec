@@ -32,10 +32,11 @@ echo "Making"
 
 %install
 echo "installing"
-#mkdir %{buildroot}
+install -m 0755 -d %{buildroot}%{_bindir}
+install -m 0755 -d %{buildroot}%{_docdir}/%{name}
+install -p -D -m 0755 %{SOURCE0} %{buildroot}%{_bindir}loginmgr
+install -p -D -m 0755 %{SOURCE1} %{buildroot}%{_docdir}/%{name}/README.md
 
-install -p -D -m 0755 %{SOURCE0} \
-    %{buildroot}/loginmgr
 
 %pre
 echo "pre"
@@ -50,7 +51,8 @@ echo "preun"
 echo "postun"
 
 %files
-%{_bindir}/loginmgr
+%{_bindir}loginmgr
+%{_docdir}/%{name}/README.md
 
 %changelog
 * Fri Aug 18 2017 Carl Hartman <https://github.com/belsebubben> - 0.1

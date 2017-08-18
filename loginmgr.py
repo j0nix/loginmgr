@@ -115,8 +115,7 @@ def genpwd(length=20):
 
     pwd = pwdgen(length)
     while not complexitycheck(pwd):
-        pwd = ''.join(random.sample(string.ascii_letters * 7 + string.digits *\
-                7 + SPECIAL_CHARS * 2, k=length))[:length]
+        pwd = pwdgen(length)
     return pwd
 
 def salter():
@@ -144,7 +143,11 @@ def enryption_tokenizer(encpassbase, salt=None):
     <cryptography.fernet.Fernet object...
     '''
     if not salt:
-        salt = os.urandom(16)
+        if sys.version_info[0] == 3 and sys.version_info[1] >= 6: 
+            import secrets
+            salt = secrets.token_bytes(saltlength)
+        else:
+            salt = os.urandom(saltlength)
     logger.debug('Encrypt/Decrypt with salt: "%s"', salt)
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt,\
             iterations=100000, backend=default_backend())
@@ -442,7 +445,7 @@ class FileSysHandler():
         >>> feedandsave(self, b'abc123')
         '''
         #self.revisionpath = os.path.realpath('revision-' + str(logins.newrevision))
-        self.revisionpath = WORK_PATH + 'revision-' + str(logins.newrevision)
+        self.revisionpath = os.path.join(WORK_PATH, 'revision-' + str(logins.newrevision))
         if logins.newrevision == logins.revision and not self.initializing:
             # if there was no edit we use the old file paths
             self.savepath = self.filepath
