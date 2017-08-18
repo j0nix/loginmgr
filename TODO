@@ -14,7 +14,7 @@
 - [x] human friendly printing of ctime + mtime
 - [x] do not make revision updates on additions. Only on edit and remove.
 - [ ] restore command, to retreive old revision of login
-- [ ] revision search (make list of removed entries) should be dict with a list value with a list of revisions as value
+- [x] revision search (make list of removed entries) should be dict with a list value with a list of revisions as value
 - [ ] config file functions
 - [ ] clean function on save. (inventory if belonging revision files exist for "removedlist" then remove entries without belonging revisions)
 - [ ] unit tests

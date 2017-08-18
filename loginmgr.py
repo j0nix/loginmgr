@@ -95,6 +95,10 @@ def parseargs():
 def maxstrlen(maxlenlist):
     return max([len(string) for string in maxlenlist])
 
+def highlight(string, hlsearch):
+    string = string.partition(hlsearch)
+    return string[0] + COLORS['red'] + string[1] + COLORS['stndrd'] + string[2]
+
 def complexitycheck(pwd):
     '''
     >>> complexitycheck('123')
@@ -334,7 +338,9 @@ class Logins():
         self.setupdated(edit=False, remove=True, login=removed)
         self.logins['META']['deleted'].append((name, self.revision))
         logger.warning('Logins can be restored from older revisions\
-                (i.e history files use "hist-*" commands to find entries)')
+                (i.e history files use revls of search to find\
+                deleted entries)! You can then open and retreive\
+                them using revopen')
         logger.warning('Removed login %s', name)
         return True
 
@@ -626,11 +632,19 @@ class MainInterpreter(cmd.Cmd):
         searchresults = []
         args = args.lower()
         for entry in self.logins.logins.keys():
+            if entry in filtered_meta_words:
+                continue
             if args in entry:
                 print(entry)
             for key, val in self.logins.logins[entry].items():
-                if args in str(key).lower() or args in str(val).lower():
-                    print("{0}: {1}:{2}".format(entry, key, val))
+                if args in str(key).lower():
+                    print("{0} : {1} : {2}".format(entry, highlight(key, args), val))
+                if args in str(val).lower():
+                    print("{0} : {1} : {2}".format(entry, key, highlight(val, args)))
+
+        for login in self.logins.logins['META']['deleted']:
+            if args in login[0]:
+                print(('{0} : (revision {1})' + COLORS['red'] + ' (deleted)' + COLORS['stndrd']).format(highlight(login[0], args), login[1]))
         return
 
     def help_search(self):
@@ -754,9 +768,12 @@ class MainInterpreter(cmd.Cmd):
     def do_revls(self, args):
         for rev in self.filesys.revisions:
             print(rev.strip('revision-'))
+        print( COLORS['red'] + 'Deleted entries:' + COLORS['stndrd'])
+        for login in self.logins.logins['META']['deleted']:
+            print('{0} : (revision {1})'.format(login[0], login[1]))
 
     def help_revls(self):
-        print('"revls" list available revisions')
+        print('"revls" list available revisions, and deleted entries')
     # end revls
 
     # revopen
