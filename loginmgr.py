@@ -124,17 +124,21 @@ def salter():
 
 def pwpassprompt(decrypt=False):
     '''Prompt for password'''
-    if decrypt:
-        pass1 = getpass.getpass('Password:')
-    else:
-        pass1 = None
-        pass2 = None
-        while pass1 != pass2 or not pass1:
+    try:
+        if decrypt:
             pass1 = getpass.getpass('Password:')
-            pass2 = getpass.getpass('Repeat password:')
-            if pass1 != pass2:
-                print('Password mismatch!!')
-    logger.debug('Using password "%s"', pass1)
+        else:
+            pass1 = None
+            pass2 = None
+            while pass1 != pass2 or not pass1:
+                pass1 = getpass.getpass('Password:')
+                pass2 = getpass.getpass('Repeat password:')
+                if pass1 != pass2:
+                    print('Password mismatch!!')
+        logger.debug('Using password "%s"', pass1)
+    except KeyboardInterrupt:
+        print('\nNo changes saved! Old password is in effect!\nBye!')
+        sys.exit(0)
     return str.encode(pass1)
 
 def enryption_tokenizer(encpassbase, salt=None):
@@ -340,7 +344,7 @@ class Logins():
 
     def loginprinter(login, pwhide=True, clipboard=False, filtermeta=True):
         printfirstkeys = ('name', 'login', 'password')
-        print('{0}:'.format(login['name']))
+        print('\n{0}:'.format(login['name']))
         maxlen = str(maxstrlen(login.keys()))
         printrest = [key for key in login.keys() if key not in printfirstkeys]
         printlist = []
@@ -365,6 +369,7 @@ class Logins():
             #print(strformat.format(key, '-' if pwhide and key == 'password' else val))
         for printout in printlist:
             print(printout)
+        print()
 
 
     def load(self, byteobj):

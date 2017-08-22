@@ -1,6 +1,6 @@
 Name:		loginmgr
 Epoch:		1
-Version:	0.1
+Version:	0.11
 Release:	1%{?dist}
 BuildArch:	noarch
 Summary:	loginmgr command line login / password manager
