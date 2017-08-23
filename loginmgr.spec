@@ -2,6 +2,7 @@
 %global commit0 2ab471f6452a6242549cc924b41ff346a186075a 
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
 %global directory belsebubben-%{name}-%{shortcommit0}
+
 Name:		loginmgr
 Epoch:		1
 Version:	0.12
@@ -13,7 +14,7 @@ Release:	1%{?dist}
 License:	GPLv2
 URL:		https://github.com/belsebubben/loginmgr
 #Source0:	loginmgr.tar.gz
-#Source0:	https://api.github.com/repos/belsebubben/loginmgr/tarball/master
+Source0:	https://api.github.com/repos/belsebubben/loginmgr/tarball/master
 BuildArch:	x86_64
 BuildRoot: 	%{_tmppath}/%{name}-buildroot
 Requires:	python3 
@@ -27,8 +28,8 @@ Provides:	loginmgr
 loginmgr: A simple to use login / password manager for use on the command line.
 
 %prep
-%setup -n loginmgr
-#%setup -n %{directory}
+#%setup -n loginmgr
+%setup -n %{directory}
 
 %build
 
