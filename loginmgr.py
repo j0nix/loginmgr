@@ -622,7 +622,7 @@ class MainInterpreter(cmd.Cmd):
 
     # search
     def do_search(self, args):
-        '''Search all logins for a match, and inside all key/values for a match too'''
+        '''Search all logins for a match, and inside all key/values (except password) for a match too'''
         searchresults = []
         args = args.lower()
         for entry in self.logins.logins.keys():
@@ -631,6 +631,8 @@ class MainInterpreter(cmd.Cmd):
             if args in entry:
                 print(entry)
             for key, val in self.logins.logins[entry].items():
+                if key == 'password':
+                    continue
                 if args in str(key).lower():
                     print("{0} : {1} : {2}".format(entry, highlight(key, args), val))
                 if args in str(val).lower():
