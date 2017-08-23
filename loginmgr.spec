@@ -1,5 +1,6 @@
-#git ls-remote https://github.com/belsebubben/loginmgr.git
-%global commit0 2ab471f6452a6242549cc924b41ff346a186075a 
+# When we get Source0, wget https://api.github.com/repos/belsebubben/loginmgr/tarball/master into our SOURCE folder, we need below global 
+# definitions to automagicly know what that folders naming are after we unpack it...
+%global commit0 %(git ls-remote --heads https://github.com/belsebubben/loginmgr.git master | awk ' { print $1 } ')
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
 %global directory belsebubben-%{name}-%{shortcommit0}
 
@@ -10,12 +11,9 @@ Release:	1%{?dist}
 BuildArch:	noarch
 Summary:	loginmgr command line login / password manager
 Group:		Applications/Text
-Release:	1%{?dist}
 License:	GPLv2
 URL:		https://github.com/belsebubben/loginmgr
-#Source0:	loginmgr.tar.gz
 Source0:	https://api.github.com/repos/belsebubben/loginmgr/tarball/master
-BuildArch:	x86_64
 BuildRoot: 	%{_tmppath}/%{name}-buildroot
 Requires:	python3 
 Requires:	python3-cryptography 
