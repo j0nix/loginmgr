@@ -213,9 +213,18 @@ def shredder(filepath):
 def backtodir():
     os.chdir(STARTDIR)
 
-def fullbackup(pathtodir):
+def backup_export():
     '''Tar / zip and point to full backup of dir'''
-    pass
+    saveformat = 'loginmgr-%Y-%m-%d-%H%M%S.backup'
+    time.strftime(saveformat)
+    try:
+        bkupfilename = time.strftime(saveformat)
+        shutil.make_archive(bkupfilename, 'gztar', verbose=1, logger=logger)
+        print('Created backup: {}'.format(os.path.realpath(bkupfilename + '.tar.gz')))
+    except Exception as exc:
+        logger.warning('Failed to create archive / export {}'.format(exc))
+        return False
+
 
 #def to_clipboard(text):
     #cb = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
@@ -232,21 +241,6 @@ def to_clipboard(text):
     _, stderr = xclipper.communicate(text.encode('utf-8'))
     if xclipper.returncode != 0:
         logger.warning('Failed to copy password to clipboard:', stderr)
-
-#def decrypt(filesys):
-#    if filesys.initializing:
-#        return filesys.bytecontent
-#    decryptiontoken = enryption_tokenizer()
-#    logger.debug('Type byteobj: %s', type(byteobj))
-#    try:
-#        decryptiontoken.decrypt(byteobj)
-#    except TypeError:
-#        logger.critical('Failed to decrypt content, content corrupted?!?!')
-#        #todo implement recovery (suggestions and action)
-#        raise
-#    except InvalidToken:
-#        logger.warning('Wrong password')
-#        decrypt(byteobj)
 
 def quit(filesys, logins, save=True):
     logger.debug('Quitting with logins: {0}, filesys: {1}'.format(logins, filesys))
@@ -792,6 +786,17 @@ class MainInterpreter(cmd.Cmd):
     def help_revopen(self):
         print('"revopen <nr>" open available revision (read only)\nPassword that was used to encrypt that revision must be provided (maybe not the same as for the current one)')
     # end revopen
+
+    # export / backup
+    def do_export(self, args):
+        backup_export()
+
+    def help_export(self, args):
+        print('Will create a full backup of all data. Should be able to unpack to $HOME/.loginmgr. Or use import on a new install. Import will of course overwrite all previous data. So be careful')
+
+    do_backup = do_export
+    help_backup = help_export
+    # end export / backup
 
 def commander(filesys, logins):
     '''Main command interpreter'''
