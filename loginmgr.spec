@@ -1,9 +1,17 @@
+<<<<<<< HEAD
 #git ls-remote https://github.com/belsebubben/loginmgr.git
 %global commit0 2ab471f6452a6242549cc924b41ff346a186075a 
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:7})
 %global directory belsebubben-%{name}-%{shortcommit0}
 Name:           loginmgr
 Version:        0.11
+=======
+Name:		loginmgr
+Epoch:		1
+Version:	0.12
+Release:	1%{?dist}
+BuildArch:	noarch
+>>>>>>> e27090546cf2b1ff125161a370415ad51db128ad
 Summary:	loginmgr command line login / password manager
 Group:		Applications/Text
 Release:	1%{?dist}
@@ -52,5 +60,8 @@ rm -rf $RPM_BUILD_ROOT
 #%doc README.md
 
 %changelog
+* Wed Aug 23 2017 Carl Hartman <https://github.com/belsebubben> - 0.12
+- Export funcion
+
 * Fri Aug 18 2017 Carl Hartman <https://github.com/belsebubben> - 0.1
 - Inifial build
