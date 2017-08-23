@@ -1,6 +1,6 @@
 Name:		loginmgr
 Epoch:		1
-Version:	0.11
+Version:	0.12
 Release:	1%{?dist}
 BuildArch:	noarch
 Summary:	loginmgr command line login / password manager
@@ -55,5 +55,8 @@ echo "postun"
 %{_docdir}/%{name}/README.md
 
 %changelog
+* Wed Aug 23 2017 Carl Hartman <https://github.com/belsebubben> - 0.12
+- Export funcion
+
 * Fri Aug 18 2017 Carl Hartman <https://github.com/belsebubben> - 0.1
 - Inifial build
