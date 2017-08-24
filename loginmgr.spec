@@ -26,32 +26,35 @@ Provides:	loginmgr
 loginmgr: A simple to use login / password manager for use on the command line.
 
 %prep
-#%setup -n loginmgr
+# when we untar master, folder will be named as defined by global variable directory
 %setup -n %{directory}
 
 %build
+# Well hello there...
 
 %install
-
-#mkdir -p -m 0755 doc/man1 $RPM_BUILD_ROOT%{_mandir}/man1
 install -p -D -m 0755 loginmgr.py %{buildroot}%{_bindir}/loginmgr
 install -p -D -m 0755 README.md %{buildroot}%{_docdir}/%{name}/README.md
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
+
+%pre
+# nothing .. for now
 
 %post
+# nothing .. for now
 
 %preun
+# nothing .. for now
 
 %postun
+# nothing .. for now
 
 %files
 %{_bindir}/loginmgr
-%{_docdir}/%{name}/README.md
-#%{_mandir}/man1/loginmgr.1
 
-#%doc README.md
+%doc %{_docdir}/%{name}/README.md
 
 %changelog
 * Wed Aug 23 2017 Carl Hartman <https://github.com/belsebubben> - 0.12

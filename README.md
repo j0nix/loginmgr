@@ -1,12 +1,14 @@
 #loginmgr
-simple encrypted storage and manager for logins with small and simple revision handling remove / add / edit entries. Get retreives to clipboard (xclip). Written for linux,
-Requires pythohn 3+. Python 3.6+ is preferred.
+Simple encrypted storage and manager for logins with small and simple revision handling remove / add / edit entries. 
+- Get retreives to clipboard (xclip). 
+- Written for linux,
 
-Usage: loginmgr | loginmgr "entry"
+ **Requires python 3+, Python 3.6+ is preferred.**
 
-loginmgr without entry argument brings you to the shell
+***Usage:*** loginmgr | loginmgr "entry"
 
-Shell cli
+* **loginmgr without entry argument brings you to the shell**
+
 ```
 Documented commands (type help topic):
 ========================================
@@ -36,7 +38,7 @@ Password that was used to encrypt that revision must be provided (maybe not the 
 "search <text>" Search all logins for a match, and inside all key/values for a match too
 ```
 
-exampe add:
+**Exampe add:**
 
 ```
 loginmgr:add secretsite.com
@@ -54,3 +56,29 @@ Save entry y/n? y
 ```
 
 example rm:
+...
+
+
+## Build rpm from loginmgr.spec 
+1. Go to your build root 
+2. cd SOURCES && wget https://api.github.com/repos/belsebubben/loginmgr/tarball/master
+4. cd ../SPECS && wget https://raw.githubusercontent.com/belsebubben/loginmgr/master/loginmgr.spec
+5. cd .. && rpmbuild --clean -bb SPECS/loginmgr.spec
+
+when finished your build enviroment would like something like this
+```
+[josv01@j0nix-chmc-4111 rpmbuild]$ tree
+.
+├── BUILD
+├── BUILDROOT
+├── RPMS
+│   ├── noarch
+│   │   └── loginmgr-0.12-1.fc24.noarch.rpm
+│   └── x86_64
+├── SOURCES
+│   └── master
+├── SPECS
+│   └── loginmgr.spec
+├── SRPMS
+└── tmp
+```
