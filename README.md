@@ -1,5 +1,6 @@
-#loginmgr
-Simple encrypted storage and manager for logins with small and simple revision handling remove / add / edit entries. 
+# loginmgr
+
+**Simple encrypted storage and manager for logins with small and simple revision handling remove / add / edit entries.**
 - Get retreives to clipboard (xclip). 
 - Written for linux,
 
