@@ -67,7 +67,7 @@ example rm:
 
 when finished your build enviroment would like something like this
 ```
-[josv01@j0nix-chmc-4111 rpmbuild]$ tree
+[j0nix rpmbuild]$ tree
 .
 ├── BUILD
 ├── BUILDROOT
