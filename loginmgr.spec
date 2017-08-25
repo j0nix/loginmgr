@@ -6,7 +6,7 @@
 
 Name:		loginmgr
 Epoch:		1
-Version:	0.12
+Version:	0.15
 Release:	1%{?dist}
 BuildArch:	noarch
 Summary:	loginmgr command line login / password manager
@@ -57,6 +57,12 @@ rm -rf %{buildroot}
 %doc %{_docdir}/%{name}/README.md
 
 %changelog
+* Fri Aug 25 2017 Carl Hartman <https://github.com/belsebubben> - 0.15
+- Adding import functionality for exported archive (-i flag)
+
+* Wed Aug 23 2017 Carl Hartman <https://github.com/belsebubben> - 0.14
+- Filter password from searches
+
 * Wed Aug 23 2017 Carl Hartman <https://github.com/belsebubben> - 0.12
 - Export funcion
 
