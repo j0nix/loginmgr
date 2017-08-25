@@ -65,6 +65,7 @@ def parseargs():
     parser.add_argument('entry', metavar='e', type=str, nargs='*', help='print single entry')
     parser.add_argument('-s' '--setup', dest='setup', action='store_true',\
             default=False, help='Base storage method')
+    parser.add_argument('-i' '--import', dest='import',  default=None, help='Import archive (previously exported with "export")')
     parser.add_argument('-d' '--debug', dest='debug', action='store_true',\
             default=False, help='Enable debugging')
     parser.add_argument('-P' '--password-display', dest='pwdisplay', action='store_false',\
@@ -216,22 +217,40 @@ def backtodir():
 def backup_export():
     '''Tar / zip and point to full backup of dir'''
     saveformat = 'loginmgr-%Y-%m-%d-%H%M%S.backup'
-    time.strftime(saveformat)
+    bkupfilename = time.strftime(saveformat)
     try:
-        bkupfilename = time.strftime(saveformat)
         shutil.make_archive(bkupfilename, 'gztar', verbose=1, logger=logger)
         print('Created backup: {}'.format(os.path.realpath(bkupfilename + '.tar.gz')))
     except Exception as exc:
         logger.warning('Failed to create archive / export {}'.format(exc))
         return False
 
-
-#def to_clipboard(text):
-    #cb = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
-    #cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-    #cb.connect('owner-change',test)
-    #cb.set_text('foooo', -1)
-    #cb.store()
+def import_restore(archivefile):
+    '''Untar / Unzip and restore to work path'''
+    archivefile = os.path.realpath(archivefile)
+    backupextension = '-%Y-%m-%d-%H%M%S.backup'
+    bkupdirname = time.strftime(backupextension)
+    restorepath = WORK_PATH + '-restore'
+    if not os.path.isfile(archivefile):
+        logger.warning('Import archive "{}" not available'.format(archivefile))
+        return None
+    try:
+        logger.debug('Moving {0} to {1}'.format(WORK_PATH, WORK_PATH + bkupdirname))
+        shutil.move(WORK_PATH, WORK_PATH + bkupdirname)
+        os.mkdir(restorepath, mode=0o700)
+        os.chdir(restorepath)
+        logger.info('Importing / restoring {}'.format(archivefile))
+        shutil.unpack_archive(archivefile)
+        if not os.path.islink(os.path.join(restorepath, FNAME)):
+            logger.warning('Failed to restore archive ( archive does not contain a: "{}" )!! Restoring old dir'.format(FNAME))
+            shutil.rmtree(restorepath)
+            shutil.move(WORK_PATH + bkupdirname, WORK_PATH)
+    except Exception as exc:
+        logger.warning('Failed to create archive / export {}'.format(exc))
+        return False
+    shutil.move(restorepath, WORK_PATH)
+    print('Restored loginmgr from archive')
+    shutil.rmtree(WORK_PATH + bkupdirname)
 
 def to_clipboard(text):
     try:
@@ -821,6 +840,10 @@ def entryprint(logins, entryargs):
 
 def main():
     atexit.register(backtodir)
+
+    if getattr(args, 'import') is not None:
+        import_restore(getattr(args, 'import'))
+
     filesys = FileSysHandler(FNAME)
     if not filesys.initializing:
         decrypted = decrypter(filesys.get_raw_content())
