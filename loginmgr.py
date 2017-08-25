@@ -514,7 +514,7 @@ class FileSysHandler():
         self.initializing = True
         if workdir:
             print('Initializing directory structure')
-            logger.info('Creating {0}', WORK_PATH)
+            logger.info('Creating %s', WORK_PATH)
             os.mkdir(WORK_PATH, mode=0o700)
             os.chdir(WORK_PATH)
 
