@@ -242,18 +242,23 @@ def import_restore(archivefile, filesys):
     backupextension = '-%Y-%m-%d-%H%M%S.backup'
     bkupdirname = time.strftime(backupextension)
     restorepath = WORK_PATH + '-restore'
-    importrevision = int(rev_from_filename(archivefile))
-    latestcurrentrevision = int(sorted([int(rev) for rev in filesys.revisions.keys()])[-1])
-    logger.debug('latestcurrentrevision: {}'.format(latestcurrentrevision))
-    if importrevision <= latestcurrentrevision:
-        print('Warning the import contains revision:"{}" and your latest revision is:"{}"\
-                this could lead to loss of data'.format(importrevision, latestcurrentrevision))
-        yesno = input('Do you want to continue the import and potentially loose data!? (Yes/No):')
-        if 'y' in yesno.lower():
-            pass
-        else:
-            print('Cancelling!')
-            sys.exit(0)
+    if os.path.isdir(restorepath):
+        logger.debug('Removing old restore point')
+        shutil.rmtree(restorepath)
+    if not filesys.initializing:
+        # if we import into an emty dir the there is no worry
+        importrevision = int(rev_from_filename(archivefile))
+        latestcurrentrevision = int(sorted([int(rev) for rev in filesys.revisions.keys()])[-1])
+        logger.debug('latestcurrentrevision: {}'.format(latestcurrentrevision))
+        if importrevision <= latestcurrentrevision:
+            print('Warning the import contains revision:"{}" and your latest revision is:"{}"\
+                    this could lead to loss of data'.format(importrevision, latestcurrentrevision))
+            yesno = input('Do you want to continue the import and potentially loose data!? (Yes/No):')
+            if 'y' in yesno.lower():
+                pass
+            else:
+                print('Cancelling!')
+                sys.exit(0)
     if not os.path.isfile(archivefile):
         logger.warning('Import archive "{}" not available'.format(archivefile))
         return None
@@ -870,6 +875,8 @@ def main():
 
     if getattr(args, 'import') is not None:
         import_restore(getattr(args, 'import'), filesys)
+        del filesys
+        filesys = FileSysHandler(FNAME)
 
     if not filesys.initializing:
         decrypted = decrypter(filesys.get_raw_content())
