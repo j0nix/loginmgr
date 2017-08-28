@@ -62,14 +62,13 @@ example rm:
 
 ## Build rpm from loginmgr.spec 
 1. Go to your build root 
-2. cd SOURCES && wget https://api.github.com/repos/belsebubben/loginmgr/tarball/master
-4. cd ../SPECS && wget https://raw.githubusercontent.com/belsebubben/loginmgr/master/loginmgr.spec
-5. cd .. && rpmbuild --clean -bb SPECS/loginmgr.spec
+2. Into SOURCES folder, wget https://api.github.com/repos/belsebubben/loginmgr/tarball/master
+4. Into SPECS folder, wget https://raw.githubusercontent.com/belsebubben/loginmgr/master/loginmgr.spec
+5. rpmbuild --clean -bb SPECS/loginmgr.spec
 
-when finished your build enviroment would like something like this
+When finished your build enviroment would like something like this
+
 ```
-[j0nix rpmbuild]$ tree
-.
 ├── BUILD
 ├── BUILDROOT
 ├── RPMS
