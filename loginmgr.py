@@ -214,9 +214,20 @@ def shredder(filepath):
 def backtodir():
     os.chdir(STARTDIR)
 
-def backup_export():
+def rev_from_filename(filename):
+    try:
+        filename = os.path.basename(filename)
+        filenamepart = filename.strip('loginmgr-rev-') 
+        revision = filenamepart.partition('--')[0]
+        logger.debug('Revision extracted from filename {}'.format(revision))
+    except Exception as exc:
+        print('Failed to extract revision from filename {exc}'.format(exc))
+        return False
+    return revision
+
+def backup_export(filesys, logins):
     '''Tar / zip and point to full backup of dir'''
-    saveformat = 'loginmgr-%Y-%m-%d-%H%M%S.backup'
+    saveformat = 'loginmgr-rev-{}--%Y-%m-%d-%H%M%S.backup'.format(logins.newrevision)
     bkupfilename = time.strftime(saveformat)
     try:
         shutil.make_archive(bkupfilename, 'gztar', verbose=1, logger=logger)
@@ -225,12 +236,29 @@ def backup_export():
         logger.warning('Failed to create archive / export {}'.format(exc))
         return False
 
-def import_restore(archivefile):
+def import_restore(archivefile, filesys):
     '''Untar / Unzip and restore to work path'''
     archivefile = os.path.realpath(archivefile)
     backupextension = '-%Y-%m-%d-%H%M%S.backup'
     bkupdirname = time.strftime(backupextension)
     restorepath = WORK_PATH + '-restore'
+    if os.path.isdir(restorepath):
+        logger.debug('Removing old restore point')
+        shutil.rmtree(restorepath)
+    if not filesys.initializing:
+        # if we import into an emty dir the there is no worry
+        importrevision = int(rev_from_filename(archivefile))
+        latestcurrentrevision = int(sorted([int(rev) for rev in filesys.revisions.keys()])[-1])
+        logger.debug('latestcurrentrevision: {}'.format(latestcurrentrevision))
+        if importrevision <= latestcurrentrevision:
+            print('Warning the import contains revision:"{}" and your latest revision is:"{}"\
+                    this could lead to loss of data'.format(importrevision, latestcurrentrevision))
+            yesno = input('Do you want to continue the import and potentially loose data!? (Yes/No):')
+            if 'y' in yesno.lower():
+                pass
+            else:
+                print('Cancelling!')
+                sys.exit(0)
     if not os.path.isfile(archivefile):
         logger.warning('Import archive "{}" not available'.format(archivefile))
         return None
@@ -261,13 +289,15 @@ def to_clipboard(text):
     if xclipper.returncode != 0:
         logger.warning('Failed to copy password to clipboard:', stderr)
 
-def quit(filesys, logins, save=True):
+def quit(filesys, logins, save=True, export=False):
     logger.debug('Quitting with logins: {0}, filesys: {1}'.format(logins, filesys))
     print()
     if not save:
         sys.exit(0)
     encryptedbytes = encrypt(logins.save())
     filesys.feedandsave(encryptedbytes, logins)
+    if export:
+        backup_export(filesys, logins)
     sys.exit(0)
 
 class Login():
@@ -547,7 +577,9 @@ class FileSysHandler():
         revisionlist = {}
         revfilelinks = glob(WORK_PATH + os.path.sep + 'revision-' + '*')
         for revfile in revfilelinks:
-            revisionlist[revfile] = os.readlink(revfile)
+            revnr = os.path.basename(revfile).strip('revision-') 
+            revisionlist[revnr] = os.readlink(revfile)
+        logger.debug('Revisionlist: {}'.format(str(revisionlist)))
         return revisionlist
 
     def revisiongetter(revisionnr):
@@ -569,7 +601,6 @@ class FileSysHandler():
             self.initializing = True
 
         logger.debug('initializing = %s', self.initializing)
-        #self.backup_first()
         self.backupfiles = glob(WORK_PATH + os.path.sep + '*' + '.enc')
         self.bytecontent =  self.get_raw_content()
 
@@ -782,7 +813,7 @@ class MainInterpreter(cmd.Cmd):
     # revls
     def do_revls(self, args):
         for rev in self.filesys.revisions:
-            print(rev.strip('revision-'))
+            print(rev)
         print( COLORS['red'] + 'Deleted entries:' + COLORS['stndrd'])
         for login in self.logins.logins['META']['deleted']:
             print('{0} : (revision {1})'.format(login[0], login[1]))
@@ -810,7 +841,7 @@ class MainInterpreter(cmd.Cmd):
 
     # export / backup
     def do_export(self, args):
-        backup_export()
+        quit(self.filesys, self.logins, save=self.save, export=True )
 
     def help_export(self, args):
         print('Will create a full backup of all data. Should be able to unpack to $HOME/.loginmgr. Or use import on a new install. Import will of course overwrite all previous data. So be careful')
@@ -840,11 +871,13 @@ def entryprint(logins, entryargs):
 
 def main():
     atexit.register(backtodir)
+    filesys = FileSysHandler(FNAME)
 
     if getattr(args, 'import') is not None:
-        import_restore(getattr(args, 'import'))
+        import_restore(getattr(args, 'import'), filesys)
+        del filesys
+        filesys = FileSysHandler(FNAME)
 
-    filesys = FileSysHandler(FNAME)
     if not filesys.initializing:
         decrypted = decrypter(filesys.get_raw_content())
         logins = Logins(decrypted)
